@@ -1,0 +1,35 @@
+name: Compilar plugins (Windows)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false          # si uno falla, los demás se compilan igual
+      matrix:
+        plugin: [MilagrosSound, MilagrosLimpio, MilagrosAfina, MilagrosMaster]
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar
+        run: cmake -S ${{ matrix.plugin }} -B build -A x64
+
+      - name: Compilar
+        run: cmake --build build --config Release
+
+      - name: Preparar el plugin
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item -Recurse "build/${{ matrix.plugin }}_artefacts/Release/VST3/${{ matrix.plugin }}.vst3" dist/
+
+      - name: Guardar el plugin para descargarlo
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.plugin }}-VST3
+          path: dist
